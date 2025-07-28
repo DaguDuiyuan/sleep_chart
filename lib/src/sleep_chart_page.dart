@@ -2,7 +2,6 @@
 /// 根据传入的参数绘制睡眠时长图表，包括背景、网格线、标题、条形图和底部信息等
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class SleepDurationPainter extends CustomPainter {
@@ -63,6 +62,8 @@ class SleepDurationPainter extends CustomPainter {
   /// 日期格式化函数
   final String Function(DateTime) dateFormatter;
 
+  final double curveRadius;
+
   double minuteWidth = 0.0;
 
   /// 默认的睡眠阶段颜色映射
@@ -120,6 +121,7 @@ class SleepDurationPainter extends CustomPainter {
     required this.startTime,
     required this.endTime,
     required this.xAxisTitleHeight,
+    required this.curveRadius,
     this.horizontalLineStyle = const LineStyle(width: 5.0, space: 3.0),
     this.verticalLineStyle = const LineStyle(width: 5.0, space: 3.0),
     this.horizontalLineCount = 8, // 默认8个间隔，9条线
@@ -158,17 +160,16 @@ class SleepDurationPainter extends CustomPainter {
       minuteWidth = size.width / totalNum;
     }
 
-    // fixme
     // 绘制背景
     _drawBackground(canvas, size);
     // 绘制线条
     _drawLines(canvas, size);
     // 绘制标题
     _drawTitle(canvas, size);
-    //绘制指示条
-    _drawIndicator(canvas, size);
     // 绘制条形图
     _drawBarArea(canvas, size);
+    //绘制指示条
+    _drawIndicator(canvas, size);
     // 绘制底部信息
     _drawBottomInfo(canvas, size);
   }
@@ -298,8 +299,6 @@ class SleepDurationPainter extends CustomPainter {
     }
   }
 
-  var radius = Radius.circular(10);
-
   /// 绘制睡眠阶段
   paintSleepStage({
     required Canvas canvas,
@@ -307,24 +306,22 @@ class SleepDurationPainter extends CustomPainter {
     required Rect rect,
     required int currentIndex,
   }) {
-    var topLeft = radius;
-    var topRight = radius;
-    var bottomLeft = radius;
-    var bottomRight = radius;
+    var topLeft = Radius.circular(curveRadius);
+    var topRight = Radius.circular(curveRadius);
+    var bottomLeft = Radius.circular(curveRadius);
+    var bottomRight = Radius.circular(curveRadius);
 
     if (currentIndex == 0) {
       // 绘制第一个
       var splitDetails = details.length > 1 ? details.sublist(0, 2) : [];
       var current = getHeightFromStage(splitDetails.first.model);
       var last = getHeightFromStage(splitDetails.last.model);
-      print(current);
-      print(last);
       if (current < last) {
         bottomRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.bottomRight);
+        _drawTriangle(canvas, rect, paint, Corner.bottomRight);
       } else {
         topRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.topRight);
+        _drawTriangle(canvas, rect, paint, Corner.topRight);
       }
     } else if (currentIndex == details.length - 1) {
       // 绘制最后一个
@@ -335,10 +332,10 @@ class SleepDurationPainter extends CustomPainter {
       var last = getHeightFromStage(splitDetails.last.model);
       if (current < last) {
         topLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.topLeft);
+        _drawTriangle(canvas, rect, paint, Corner.topLeft);
       } else {
         bottomLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.bottomLeft);
+        _drawTriangle(canvas, rect, paint, Corner.bottomLeft);
       }
     } else {
       // 绘制中间
@@ -349,19 +346,19 @@ class SleepDurationPainter extends CustomPainter {
       // 判断左边
       if (start < current) {
         topLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.topLeft);
+        _drawTriangle(canvas, rect, paint, Corner.topLeft);
       } else {
         bottomLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.bottomLeft);
+        _drawTriangle(canvas, rect, paint, Corner.bottomLeft);
       }
 
       // 判断右边
       if (current > end) {
         topRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.topRight);
+        _drawTriangle(canvas, rect, paint, Corner.topRight);
       } else {
         bottomRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, _TriangleType.bottomRight);
+        _drawTriangle(canvas, rect, paint, Corner.bottomRight);
       }
     }
 
@@ -378,12 +375,12 @@ class SleepDurationPainter extends CustomPainter {
 
   /// 绘制连接处三角形
   void _drawTriangle(
-      Canvas canvas, Rect rect, Paint paint, _TriangleType type) {
+      Canvas canvas, Rect rect, Paint paint, Corner type) {
     Path path = Path();
-    double radius = min(rect.width / 2, 10); // 内凹弧线的半径
+    double radius = min(rect.width / 2, curveRadius); // 内凹弧线的半径
 
     switch (type) {
-      case _TriangleType.bottomRight:
+      case Corner.bottomRight:
         var bottom = rect.bottom - .2;
         var right = rect.right - .5;
 
@@ -397,7 +394,7 @@ class SleepDurationPainter extends CustomPainter {
         canvas.drawPath(path, paint);
         return;
 
-      case _TriangleType.bottomLeft:
+      case Corner.bottomLeft:
         var bottom = rect.bottom - .2;
         var left = rect.left + .5;
 
@@ -411,7 +408,7 @@ class SleepDurationPainter extends CustomPainter {
         canvas.drawPath(path, paint);
         return;
 
-      case _TriangleType.topLeft:
+      case Corner.topLeft:
         var top = rect.top + .2;
         var left = rect.left + .5;
 
@@ -425,7 +422,7 @@ class SleepDurationPainter extends CustomPainter {
         canvas.drawPath(path, paint);
         break;
 
-      case _TriangleType.topRight:
+      case Corner.topRight:
         var top = rect.top + .2;
         var right = rect.right - .5;
 
@@ -1117,6 +1114,7 @@ class SleepDurationChartWidget extends StatefulWidget {
   final Map<SleepStage, Color>? stageColors; // 阶段颜色映射
   final TextStyle? bottomInfoTextStyle; // 底部信息文本样式
   final String Function(DateTime)? dateFormatter; // 日期格式化函数
+  final double curveRadius;
 
   const SleepDurationChartWidget({
     Key? key,
@@ -1133,7 +1131,7 @@ class SleepDurationChartWidget extends StatefulWidget {
     this.verticalLineStyle = const LineStyle(width: 5.0, space: 3.0),
     this.horizontalLineCount = 8,
     this.dividerPaintStyle = const PaintStyle(
-      color: Color(0xFF000000),
+      color: Color(0xFFEEEEEE),
       strokeWidth: 1.0,
       style: PaintingStyle.stroke,
       strokeCap: StrokeCap.round,
@@ -1142,6 +1140,7 @@ class SleepDurationChartWidget extends StatefulWidget {
     this.stageColors,
     this.bottomInfoTextStyle,
     this.dateFormatter,
+    this.curveRadius = 10,
   }) : super(key: key);
 
   @override
@@ -1197,6 +1196,7 @@ class _SleepDurationChartWidgetState extends State<SleepDurationChartWidget> {
               bottomInfoTextStyle: widget.bottomInfoTextStyle,
               dateFormatter: widget.dateFormatter,
               indicatorPosition: _indicatorPosition,
+              curveRadius: widget.curveRadius
             ),
             size: Size(constraints.maxWidth, constraints.maxHeight),
           ),
@@ -1204,15 +1204,4 @@ class _SleepDurationChartWidgetState extends State<SleepDurationChartWidget> {
       },
     );
   }
-}
-
-enum _TriangleType {
-  topLeft,
-  topRight,
-  bottomLeft,
-  bottomRight;
-  // leftTop,
-  // rightTop,
-  // leftBottom,
-  // rightBottom;
 }

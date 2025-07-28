@@ -60,6 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
             xAxisTitleOffset: 8.0,
             xAxisTitleHeight: 15.0,
             bgColor: Color.fromRGBO(72, 112, 243, 0.04),
+            curveRadius: 8,
             details: [
               SleepDetailChart(
                 model: SleepStage.light,
