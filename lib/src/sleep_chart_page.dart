@@ -1,61 +1,80 @@
 /// 睡眠时长图表绘制器
 /// 根据传入的参数绘制睡眠时长图表，包括背景、网格线、标题、条形图和底部信息等
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class SleepDurationPainter extends CustomPainter {
   /// 高度单位，用于计算条形图的高度
   final double heightUnit;
+
   /// 标题区域的高度
   final double titleHeight;
+
   /// 标题与图表之间的间距
   final double titleGap;
+
   /// X轴标题的偏移量
   final double xAxisTitleOffset;
+
   /// 图表背景颜色
   final Color bgColor;
+
   /// 睡眠详情数据列表
   final List<SleepDetailChart> details;
+
   /// 开始时间
   final DateTime startTime;
+
   /// 结束时间
   final DateTime endTime;
+
   /// X轴标题的高度
   final double xAxisTitleHeight;
+
   /// 曲线边缘的高度，用于绘制连接处的圆角效果
   double curveEdgeHeight = 10.0;
+
   /// 指示器的水平位置
   double indicatorPosition;
 
   /// 水平网格线的样式
   final LineStyle horizontalLineStyle;
+
   /// 垂直网格线的样式
   final LineStyle verticalLineStyle;
+
   /// 水平网格线的数量
   final int horizontalLineCount;
+
   /// 网格线的画笔样式
   final PaintStyle dividerPaintStyle;
+
   /// 睡眠阶段之间的渐变连接线样式
   final List<SleepStageStyle> sleepStageStyles;
+
   /// 不同睡眠阶段对应的颜色映射
   final Map<SleepStage, Color> stageColors;
 
   /// 底部信息的文本样式
   final TextStyle bottomInfoTextStyle;
+
   /// 日期格式化函数
   final String Function(DateTime) dateFormatter;
+
+  double minuteWidth = 0.0;
 
   /// 默认的睡眠阶段颜色映射
   static final Map<SleepStage, Color> _defaultStageColors = {
     SleepStage.light: Color(0xFF4870F3), // 浅睡眠 - 浅蓝色
-    SleepStage.deep: Color(0xFF21B2A1),  // 深睡眠 - 青色
-    SleepStage.rem: Color(0xFFFCD166),   // 快速眼动 - 黄色
+    SleepStage.deep: Color(0xFF21B2A1), // 深睡眠 - 青色
+    SleepStage.rem: Color(0xFFFCD166), // 快速眼动 - 黄色
   };
 
   /// 默认的底部信息文本样式
   static const TextStyle _defaultBottomInfoTextStyle = TextStyle(
     color: Color(0xFF666666),
     fontSize: 10,
-    height: 14.0/10.0,
+    height: 14.0 / 10.0,
   );
 
   /// 默认的日期格式化函数
@@ -66,8 +85,10 @@ class SleepDurationPainter extends CustomPainter {
 
   /// 图表实际高度
   double chartHeight = 0;
+
   /// 条形图的高度
   double barHeight = 0;
+
   /// 起始高度
   double startHeight = 0;
 
@@ -113,16 +134,25 @@ class SleepDurationPainter extends CustomPainter {
     this.indicatorPosition = 0.0, // 默认位置为0
   })  : this.sleepStageStyles = sleepStageStyles ?? _defaultSleepStageStyles,
         this.stageColors = stageColors ?? _defaultStageColors,
-        this.bottomInfoTextStyle = bottomInfoTextStyle ?? _defaultBottomInfoTextStyle,
+        this.bottomInfoTextStyle =
+            bottomInfoTextStyle ?? _defaultBottomInfoTextStyle,
         this.dateFormatter = dateFormatter ?? _defaultDateFormatter;
 
   @override
   void paint(Canvas canvas, Size size) {
     // 在paint方法中根据size计算实际值
-    chartHeight = (size.height - titleHeight - titleGap - xAxisTitleOffset - xAxisTitleHeight);
+    chartHeight = (size.height -
+        titleHeight -
+        titleGap -
+        xAxisTitleOffset -
+        xAxisTitleHeight);
     barHeight = chartHeight * heightUnit;
     startHeight = chartHeight * heightUnit;
     curveEdgeHeight = barHeight / 2 + 3;
+
+    // 计算每分钟的宽度 = 总宽度 / 总分钟数
+    var totalNum = details.map((e) => e.duration).reduce((a, b) => a + b);
+    minuteWidth = size.width / totalNum;
 
     // 绘制背景
     _drawBackground(canvas, size);
@@ -141,11 +171,16 @@ class SleepDurationPainter extends CustomPainter {
   /// 绘制背景
   /// 在图表区域绘制纯色背景
   void _drawBackground(Canvas canvas, Size size) {
-    final chartHeight = (size.height - titleHeight - titleGap - xAxisTitleOffset - xAxisTitleHeight);
+    final chartHeight = (size.height -
+        titleHeight -
+        titleGap -
+        xAxisTitleOffset -
+        xAxisTitleHeight);
     final backgroundPaint = Paint()
       ..color = bgColor
       ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(0, titleHeight + titleGap, size.width, chartHeight),
+    canvas.drawRect(
+        Rect.fromLTWH(0, titleHeight + titleGap, size.width, chartHeight),
         backgroundPaint);
   }
 
@@ -217,9 +252,11 @@ class SleepDurationPainter extends CustomPainter {
     for (int i = 0; i < details.length; i++) {
       // 计算每个条形的起始位置
       // i==0时left=0，之后每次累加前一个bar的width
-      i == 0 ? left = 0 : left += details[i - 1].width;
-      print("left: $left");
-      print("details[i].width: ${details[i].width}");
+      i == 0 ? left = 0 : left += details[i - 1].duration * minuteWidth;
+      if (kDebugMode) {
+        print("left: $left");
+        print("details[i].width: ${details[i].duration}");
+      }
 
       final endY = startHeight * getHeightFromStage(details[i].model);
       final startY = endY + titleHeight + titleGap;
@@ -234,7 +271,7 @@ class SleepDurationPainter extends CustomPainter {
         Rect.fromLTWH(
           left,
           startY,
-          details[i].width,
+          details[i].duration * minuteWidth,
           barHeight,
         ),
         Radius.circular(10),
@@ -269,12 +306,14 @@ class SleepDurationPainter extends CustomPainter {
   }) {
     // var connectX = left;
     // 计算连接线的起始和结束位置
-    final startY = titleHeight + titleGap +
+    final startY = titleHeight +
+        titleGap +
         (getHeightFromStage(details[currentIndex - 1].model) *
             heightUnit *
             chartHeight);
 
-    final endY = titleHeight + titleGap +
+    final endY = titleHeight +
+        titleGap +
         (getHeightFromStage(details[currentIndex].model) *
             heightUnit *
             chartHeight);
@@ -293,13 +332,16 @@ class SleepDurationPainter extends CustomPainter {
       style = sleepStageStyles[0]; // 深睡眠到浅睡眠
     } else if (prevModel == SleepStage.deep && currentModel == SleepStage.rem) {
       style = sleepStageStyles[1]; // 深睡眠到快速眼动
-    } else if (prevModel == SleepStage.light && currentModel == SleepStage.rem) {
+    } else if (prevModel == SleepStage.light &&
+        currentModel == SleepStage.rem) {
       style = sleepStageStyles[2]; // 浅睡眠到快速眼动
-    } else if (prevModel == SleepStage.light && currentModel == SleepStage.deep) {
+    } else if (prevModel == SleepStage.light &&
+        currentModel == SleepStage.deep) {
       style = sleepStageStyles[0]; // 浅睡眠到深睡眠
     } else if (prevModel == SleepStage.rem && currentModel == SleepStage.deep) {
       style = sleepStageStyles[1]; // 快速眼动到深睡眠
-    } else if (prevModel == SleepStage.rem && currentModel == SleepStage.light) {
+    } else if (prevModel == SleepStage.rem &&
+        currentModel == SleepStage.light) {
       style = sleepStageStyles[2]; // 快速眼动到浅睡眠
     }
 
@@ -312,8 +354,8 @@ class SleepDurationPainter extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: gradientColors,
         ).createShader(Rect.fromPoints(
-          Offset(left , actualStartY),
-          Offset(left  , actualEndY),
+          Offset(left, actualStartY),
+          Offset(left, actualEndY),
         ))
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1;
@@ -350,23 +392,28 @@ class SleepDurationPainter extends CustomPainter {
     switch (corner) {
       case Corner.topLeft:
         cornerPath.lineTo(centerX - 0.5, centerY - curveEdgeHeight);
-        cornerPath.lineTo(centerX + details[currentIndex].width/2, centerY - curveEdgeHeight);
-        cornerPath.lineTo(centerX + details[currentIndex].width/2, centerY);
+        cornerPath.lineTo(
+            centerX + details[currentIndex].duration * minuteWidth / 2,
+            centerY - curveEdgeHeight);
+        cornerPath.lineTo(centerX + details[currentIndex].duration * minuteWidth / 2, centerY);
         break;
       case Corner.bottomLeft:
         cornerPath.lineTo(centerX - 0.5, centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX + details[currentIndex].width/2, centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX + details[currentIndex].width/2, centerY);
+        cornerPath.lineTo(centerX + details[currentIndex].duration * minuteWidth / 2,
+            centerY + curveEdgeHeight);
+        cornerPath.lineTo(centerX + details[currentIndex].duration * minuteWidth / 2, centerY);
         break;
       case Corner.topRight:
         cornerPath.lineTo(centerX + 0.5, centerY - curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].width/2, centerY - curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].width/2, centerY);
+        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2,
+            centerY - curveEdgeHeight);
+        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2, centerY);
         break;
       case Corner.bottomRight:
         cornerPath.lineTo(centerX + 0.5, centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].width/2, centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].width/2, centerY);
+        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2,
+            centerY + curveEdgeHeight);
+        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2, centerY);
         break;
     }
     cornerPath.close();
@@ -380,7 +427,7 @@ class SleepDurationPainter extends CustomPainter {
         barRectPath.addRRect(
           RRect.fromRectAndRadius(
             Rect.fromLTWH(left, centerY - barHeight,
-                details[currentIndex].width, barHeight / 2),
+                details[currentIndex].duration * minuteWidth, barHeight / 2),
             Radius.circular(10),
           ),
         );
@@ -390,7 +437,7 @@ class SleepDurationPainter extends CustomPainter {
         barRectPath.addRRect(
           RRect.fromRectAndRadius(
             Rect.fromLTWH(left, centerY + barHeight / 2,
-                details[currentIndex].width, barHeight / 2),
+                details[currentIndex].duration * minuteWidth, barHeight / 2),
             Radius.circular(10),
           ),
         );
@@ -399,7 +446,8 @@ class SleepDurationPainter extends CustomPainter {
     barRectPath.close();
 
     // 使用路径差集运算创建最终路径
-    final clippedPath = Path.combine(PathOperation.difference, cornerPath, barRectPath);
+    final clippedPath =
+        Path.combine(PathOperation.difference, cornerPath, barRectPath);
 
     // 绘制最终路径
     canvas.drawPath(clippedPath, clippedPaint);
@@ -421,7 +469,8 @@ class SleepDurationPainter extends CustomPainter {
     final isLast = currentIndex == details.length - 1;
 
     // 计算当前条形的位置
-    final currentY = titleHeight + titleGap +
+    final currentY = titleHeight +
+        titleGap +
         (getHeightFromStage(currentModel) * heightUnit * chartHeight);
 
     var parameter = {
@@ -441,11 +490,13 @@ class SleepDurationPainter extends CustomPainter {
       // 根据睡眠阶段选择角落位置
       if (currentModel == SleepStage.deep) {
         parameter['corner'] = Corner.topLeft;
-      } else if (currentModel == SleepStage.light && prevModel == SleepStage.rem) {
+      } else if (currentModel == SleepStage.light &&
+          prevModel == SleepStage.rem) {
         parameter['corner'] = Corner.topLeft;
       } else if (currentModel == SleepStage.rem) {
         parameter['corner'] = Corner.bottomLeft;
-      } else if (currentModel == SleepStage.light && prevModel == SleepStage.deep) {
+      } else if (currentModel == SleepStage.light &&
+          prevModel == SleepStage.deep) {
         parameter['corner'] = Corner.bottomLeft;
       }
 
@@ -465,7 +516,7 @@ class SleepDurationPainter extends CustomPainter {
       final nextModel = details[currentIndex + 1].model;
 
       // 计算中心点
-      final centerX = left + details[currentIndex].width;
+      final centerX = left + details[currentIndex].duration * minuteWidth;
       final centerY = currentY + (barHeight / 2);
       parameter['centerX'] = centerX;
       parameter['centerY'] = centerY;
@@ -511,7 +562,7 @@ class SleepDurationPainter extends CustomPainter {
     for (int i = 0; i < details.length; i++) {
       final detail = details[i];
       final barLeft = currentX;
-      final barRight = currentX + detail.width;
+      final barRight = currentX + detail.duration * minuteWidth;
 
       // 最后一个bar用右闭区间，其余用左闭右开区间
       bool inBar = (i < details.length - 1)
@@ -533,7 +584,7 @@ class SleepDurationPainter extends CustomPainter {
 
     // 只在指示器严格落在bar物理范围内时才显示标题
     double barLeft = stageStartX;
-    double barRight = stageStartX + currentStage.width;
+    double barRight = stageStartX + currentStage.duration * minuteWidth;
     if (indicatorPosition < barLeft || indicatorPosition > barRight) {
       return;
     }
@@ -599,7 +650,8 @@ class SleepDurationPainter extends CustomPainter {
     // 创建时间范围文本画笔
     final timeRangePainter = TextPainter(
       text: TextSpan(
-        text: '${formatTime(currentStage.startTime)} ~ ${formatTime(currentStage.endTime)}',
+        text:
+            '${formatTime(currentStage.startTime)} ~ ${formatTime(currentStage.endTime)}',
         style: textSubTitleStyle,
       ),
       textDirection: TextDirection.ltr,
@@ -612,24 +664,24 @@ class SleepDurationPainter extends CustomPainter {
     // 计算背景矩形位置
     final bgWidth = 129.0;
     final bgHeight = 45.0;
-    
+
     // 计算标题位置，使用当前阶段的中心点
-    double bgX = stageStartX + (currentStage.width / 2) - (bgWidth / 2);
-    
+    double bgX = stageStartX + (currentStage.duration * minuteWidth / 2) - (bgWidth / 2);
+
     // 限制标题不超出边界
     if (bgX < 0) {
       bgX = 0;
     } else if (bgX + bgWidth > size.width) {
       bgX = size.width - bgWidth;
     }
-    
+
     final bgY = (titleHeight - bgHeight) / 2;
 
     // 绘制半透明背景
     final bgPaint = Paint()
       ..color = Color.fromRGBO(28, 107, 255, 0.03)
       ..style = PaintingStyle.fill;
-    
+
     final bgRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(bgX, bgY, bgWidth, bgHeight),
       Radius.circular(8),
@@ -650,8 +702,12 @@ class SleepDurationPainter extends CustomPainter {
   /// 绘制指示器
   /// 在图表中央绘制垂直指示线和底部指示器
   void _drawIndicator(Canvas canvas, Size size) {
-    final chartHeight = size.height - titleHeight - titleGap - xAxisTitleOffset - xAxisTitleHeight;
-    
+    final chartHeight = size.height -
+        titleHeight -
+        titleGap -
+        xAxisTitleOffset -
+        xAxisTitleHeight;
+
     // 创建指示线画笔
     final indicatorPaint = Paint()
       ..color = Color(0xFFDADADA)
@@ -725,7 +781,8 @@ class SleepDurationPainter extends CustomPainter {
     // 绘制日期文本
     final bottomY = size.height - xAxisTitleOffset - xAxisTitleHeight + 5;
     startDatePainter.paint(canvas, Offset(0, bottomY));
-    endDatePainter.paint(canvas, Offset(size.width - endDatePainter.width, bottomY));
+    endDatePainter.paint(
+        canvas, Offset(size.width - endDatePainter.width, bottomY));
   }
 
   @override
@@ -739,6 +796,7 @@ class SleepDurationPainter extends CustomPainter {
 class LineStyle {
   /// 线条宽度
   final double width;
+
   /// 线条间距
   final double space;
 
@@ -753,10 +811,13 @@ class LineStyle {
 class PaintStyle {
   /// 画笔颜色
   final Color color;
+
   /// 线条宽度
   final double strokeWidth;
+
   /// 绘制样式
   final PaintingStyle style;
+
   /// 线条端点形状
   final StrokeCap strokeCap;
 
@@ -773,38 +834,27 @@ class PaintStyle {
 enum Corner {
   /// 左上角
   topLeft,
+
   /// 左下角
   bottomLeft,
+
   /// 右上角
   topRight,
+
   /// 右下角
   bottomRight,
-}
-
-/// 睡眠详情数据类
-/// 用于存储单个睡眠阶段的基本信息
-class SleepDetail {
-  final SleepStage stage; // 睡眠阶段类型
-  final DateTime time; // 阶段发生时间
-
-  SleepDetail({
-    required this.stage,
-    required this.time,
-  });
 }
 
 /// 睡眠详情图表数据类
 /// 用于存储图表绘制所需的睡眠阶段详细信息
 class SleepDetailChart {
   final SleepStage model; // 睡眠阶段类型
-  final double width; // 阶段在图表中的宽度
   final DateTime startTime; // 阶段开始时间
   final DateTime endTime; // 阶段结束时间
   final int duration; // 持续时间（分钟）
 
   SleepDetailChart({
     required this.model,
-    required this.width,
     required this.startTime,
     required this.endTime,
     required this.duration,
@@ -814,7 +864,6 @@ class SleepDetailChart {
   factory SleepDetailChart.withTest() {
     return SleepDetailChart(
       model: SleepStage.light,
-      width: 100,
       startTime: DateTime.now(),
       endTime: DateTime.now().add(Duration(minutes: 30)),
       duration: 30,
@@ -867,49 +916,6 @@ int getHeightFromStage(SleepStage stage) {
   }
 }
 
-/// 创建睡眠时长图表数据
-/// 根据原始睡眠详情数据计算每个阶段在图表中的宽度和持续时间
-/// @param parentWidth 父容器宽度
-/// @param details 原始睡眠详情数据列表
-/// @param totalDuration 总睡眠时长（分钟）
-/// @return 处理后的睡眠详情图表数据列表
-List<SleepDetailChart> createSleepDurationData({
-  required double parentWidth,
-  required List<SleepDetail> details,
-  required int totalDuration,
-}) {
-  if (details.isEmpty) return [];
-
-  List<SleepDetailChart> result = [];
-  
-  for (int i = 0; i < details.length; i++) {
-    final currentDetail = details[i];
-    final nextDetail = i < details.length - 1 ? details[i + 1] : null;
-    
-    // 计算当前阶段持续时间（分钟）
-    final durationMinutes = nextDetail != null 
-        ? nextDetail.time.difference(currentDetail.time).inMinutes
-        : 0;
-    
-    // 计算百分比
-    final percentage = durationMinutes / totalDuration;
-    
-    // 计算宽度
-    final width = parentWidth * percentage;
-    
-    // 创建SleepDetailChart
-    result.add(SleepDetailChart(
-      model: currentDetail.stage,
-      width: width,
-      startTime: currentDetail.time,
-      endTime: nextDetail?.time ?? currentDetail.time.add(Duration(minutes: durationMinutes)),
-      duration: durationMinutes,
-    ));
-  }
-  
-  return result;
-}
-
 /// 睡眠阶段样式值枚举
 /// 用于定义不同睡眠阶段之间的过渡样式
 enum SleepStageStyleValue {
@@ -930,10 +936,9 @@ class SleepStageStyle {
     this.color,
     required this.value,
   }) : assert(
-    (gradientColor != null && color == null) || 
-    (gradientColor == null && color != null),
-    '必须提供gradientColor或color其中之一，但不能同时提供两者'
-  );
+            (gradientColor != null && color == null) ||
+                (gradientColor == null && color != null),
+            '必须提供gradientColor或color其中之一，但不能同时提供两者');
 }
 
 /// 睡眠时长图表组件
@@ -984,7 +989,8 @@ class SleepDurationChartWidget extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<SleepDurationChartWidget> createState() => _SleepDurationChartWidgetState();
+  State<SleepDurationChartWidget> createState() =>
+      _SleepDurationChartWidgetState();
 }
 
 /// 睡眠时长图表组件状态类
@@ -1005,8 +1011,7 @@ class _SleepDurationChartWidgetState extends State<SleepDurationChartWidget> {
 
         return GestureDetector(
           // 开始水平拖动
-          onHorizontalDragStart: (details) {
-          },
+          onHorizontalDragStart: (details) {},
           // 水平拖动更新
           onHorizontalDragUpdate: (details) {
             setState(() {
@@ -1015,8 +1020,7 @@ class _SleepDurationChartWidgetState extends State<SleepDurationChartWidget> {
             });
           },
           // 结束水平拖动
-          onHorizontalDragEnd: (details) {
-          },
+          onHorizontalDragEnd: (details) {},
           child: CustomPaint(
             painter: SleepDurationPainter(
               heightUnit: widget.heightUnit,
@@ -1044,4 +1048,4 @@ class _SleepDurationChartWidgetState extends State<SleepDurationChartWidget> {
       },
     );
   }
-} 
+}

@@ -50,8 +50,9 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Container(
-          width: 300,
-          height: 278,
+          padding: const EdgeInsets.all(16.0),
+          width: double.infinity,
+          height: 300,
           child: SleepDurationChartWidget(
             heightUnit: 1 / 8.0,
             titleHeight: 45.0,
@@ -62,56 +63,48 @@ class _MyHomePageState extends State<MyHomePage> {
             details: [
               SleepDetailChart(
                 model: SleepStage.light,
-                width: 5,
                 startTime: DateTime.now(),
                 endTime: DateTime.now().add(Duration(minutes: 5)),
                 duration: 5,
               ),
               SleepDetailChart(
                 model: SleepStage.deep,
-                width: 5,
                 startTime: DateTime.now().add(Duration(minutes: 5)),
                 endTime: DateTime.now().add(Duration(minutes: 10)),
                 duration: 5,
               ),
               SleepDetailChart(
                 model: SleepStage.rem,
-                width: 40,
                 startTime: DateTime.now().add(Duration(minutes: 10)),
                 endTime: DateTime.now().add(Duration(minutes: 50)),
                 duration: 40,
               ),
               SleepDetailChart(
                 model: SleepStage.light,
-                width: 68,
                 startTime: DateTime.now().add(Duration(minutes: 50)),
                 endTime: DateTime.now().add(Duration(minutes: 118)),
                 duration: 68,
               ),
               SleepDetailChart(
                 model: SleepStage.deep,
-                width: 42,
                 startTime: DateTime.now().add(Duration(minutes: 118)),
                 endTime: DateTime.now().add(Duration(minutes: 160)),
                 duration: 42,
               ),
               SleepDetailChart(
                 model: SleepStage.rem,
-                width: 35,
                 startTime: DateTime.now().add(Duration(minutes: 160)),
                 endTime: DateTime.now().add(Duration(minutes: 195)),
                 duration: 35,
               ),
               SleepDetailChart(
                 model: SleepStage.light,
-                width: 32,
                 startTime: DateTime.now().add(Duration(minutes: 195)),
                 endTime: DateTime.now().add(Duration(minutes: 227)),
                 duration: 32,
               ),
               SleepDetailChart(
                 model: SleepStage.deep,
-                width: 33,
                 startTime: DateTime.now().add(Duration(minutes: 227)),
                 endTime: DateTime.now().add(Duration(minutes: 260)),
                 duration: 33,
