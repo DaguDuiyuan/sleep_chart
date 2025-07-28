@@ -1,5 +1,7 @@
 /// 睡眠时长图表绘制器
 /// 根据传入的参数绘制睡眠时长图表，包括背景、网格线、标题、条形图和底部信息等
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -151,9 +153,12 @@ class SleepDurationPainter extends CustomPainter {
     curveEdgeHeight = barHeight / 2 + 3;
 
     // 计算每分钟的宽度 = 总宽度 / 总分钟数
-    var totalNum = details.map((e) => e.duration).reduce((a, b) => a + b);
-    minuteWidth = size.width / totalNum;
+    if (details.isNotEmpty) {
+      var totalNum = details.map((e) => e.duration).reduce((a, b) => a + b);
+      minuteWidth = size.width / totalNum;
+    }
 
+    // fixme
     // 绘制背景
     _drawBackground(canvas, size);
     // 绘制线条
@@ -253,10 +258,6 @@ class SleepDurationPainter extends CustomPainter {
       // 计算每个条形的起始位置
       // i==0时left=0，之后每次累加前一个bar的width
       i == 0 ? left = 0 : left += details[i - 1].duration * minuteWidth;
-      if (kDebugMode) {
-        print("left: $left");
-        print("details[i].width: ${details[i].duration}");
-      }
 
       final endY = startHeight * getHeightFromStage(details[i].model);
       final startY = endY + titleHeight + titleGap;
@@ -267,24 +268,24 @@ class SleepDurationPainter extends CustomPainter {
         ..style = PaintingStyle.fill;
 
       // 绘制圆角矩形
-      final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          left,
+      paintSleepStage(
+        canvas: canvas,
+        paint: paint,
+        rect: Rect.fromLTWH(
+          left - 0.5,
           startY,
-          details[i].duration * minuteWidth,
+          details[i].duration * minuteWidth + 1,
           barHeight,
         ),
-        Radius.circular(10),
+        currentIndex: i,
       );
-
-      canvas.drawRRect(rect, paint);
 
       // 绘制连接处的曲线边缘
-      _drawCurveEdge(
-        canvas: canvas,
-        currentIndex: i,
-        left: left,
-      );
+      // _drawCurveEdge(
+      //   canvas: canvas,
+      //   currentIndex: i,
+      //   left: left,
+      // );
 
       // 绘制条形之间的连接线
       if (i > 0) {
@@ -294,6 +295,149 @@ class SleepDurationPainter extends CustomPainter {
           left: left,
         );
       }
+    }
+  }
+
+  var radius = Radius.circular(10);
+
+  /// 绘制睡眠阶段
+  paintSleepStage({
+    required Canvas canvas,
+    required Paint paint,
+    required Rect rect,
+    required int currentIndex,
+  }) {
+    var topLeft = radius;
+    var topRight = radius;
+    var bottomLeft = radius;
+    var bottomRight = radius;
+
+    if (currentIndex == 0) {
+      // 绘制第一个
+      var splitDetails = details.length > 1 ? details.sublist(0, 2) : [];
+      var current = getHeightFromStage(splitDetails.first.model);
+      var last = getHeightFromStage(splitDetails.last.model);
+      print(current);
+      print(last);
+      if (current < last) {
+        bottomRight = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.bottomRight);
+      } else {
+        topRight = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.topRight);
+      }
+    } else if (currentIndex == details.length - 1) {
+      // 绘制最后一个
+      var splitDetails = details.length > 1
+          ? details.sublist(details.length - 2, details.length)
+          : [];
+      var current = getHeightFromStage(splitDetails.first.model);
+      var last = getHeightFromStage(splitDetails.last.model);
+      if (current < last) {
+        topLeft = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.topLeft);
+      } else {
+        bottomLeft = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.bottomLeft);
+      }
+    } else {
+      // 绘制中间
+      var start = getHeightFromStage(details[currentIndex - 1].model);
+      var current = getHeightFromStage(details[currentIndex].model);
+      var end = getHeightFromStage(details[currentIndex + 1].model);
+
+      // 判断左边
+      if (start < current) {
+        topLeft = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.topLeft);
+      } else {
+        bottomLeft = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.bottomLeft);
+      }
+
+      // 判断右边
+      if (current > end) {
+        topRight = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.topRight);
+      } else {
+        bottomRight = Radius.zero;
+        _drawTriangle(canvas, rect, paint, _TriangleType.bottomRight);
+      }
+    }
+
+    final stageRRect = RRect.fromRectAndCorners(
+      rect,
+      topLeft: topLeft,
+      topRight: topRight,
+      bottomLeft: bottomLeft,
+      bottomRight: bottomRight,
+    );
+
+    canvas.drawRRect(stageRRect, paint);
+  }
+
+  /// 绘制连接处三角形
+  void _drawTriangle(
+      Canvas canvas, Rect rect, Paint paint, _TriangleType type) {
+    Path path = Path();
+    double radius = min(rect.width / 2, 10); // 内凹弧线的半径
+
+    switch (type) {
+      case _TriangleType.bottomRight:
+        var bottom = rect.bottom - .2;
+        var right = rect.right - .5;
+
+        path.moveTo(right - radius, bottom);
+        path.arcToPoint(Offset(right, rect.bottom + radius),
+            radius: Radius.circular(radius), clockwise: true);
+        // path.quadraticBezierTo(right, bottom , right, rect.bottom + radius);
+
+        path.lineTo(right, bottom);
+        path.close();
+        canvas.drawPath(path, paint);
+        return;
+
+      case _TriangleType.bottomLeft:
+        var bottom = rect.bottom - .2;
+        var left = rect.left + .5;
+
+        path.moveTo(left + radius, bottom);
+        path.arcToPoint(Offset(left, rect.bottom + radius),
+            radius: Radius.circular(radius), clockwise: false);
+        // path.quadraticBezierTo(left, bottom, left, rect.bottom + radius);
+
+        path.lineTo(left, bottom);
+        path.close();
+        canvas.drawPath(path, paint);
+        return;
+
+      case _TriangleType.topLeft:
+        var top = rect.top + .2;
+        var left = rect.left + .5;
+
+        path.moveTo(left + radius, top);
+        path.arcToPoint(Offset(left, rect.top - radius),
+            radius: Radius.circular(radius), clockwise: true);
+        // path.quadraticBezierTo(left, top, left, rect.top - radius);
+
+        path.lineTo(left, top);
+        path.close();
+        canvas.drawPath(path, paint);
+        break;
+
+      case _TriangleType.topRight:
+        var top = rect.top + .2;
+        var right = rect.right - .5;
+
+        path.moveTo(right - radius, top);
+        path.arcToPoint(Offset(right, rect.top - radius),
+            radius: Radius.circular(radius), clockwise: false);
+        // path.quadraticBezierTo(right, top, right, rect.top - radius);
+
+        path.lineTo(right, top);
+        path.close();
+        canvas.drawPath(path, paint);
+        break;
     }
   }
 
@@ -368,8 +512,8 @@ class SleepDurationPainter extends CustomPainter {
     }
   }
 
-  /// 创建并绘制裁剪路径
-  /// 用于绘制条形图连接处的圆角效果
+  // /// 创建并绘制裁剪路径
+  // /// 用于绘制条形图连接处的圆角效果
   void _drawClippedCorner({
     required Canvas canvas,
     required double centerX,
@@ -395,25 +539,36 @@ class SleepDurationPainter extends CustomPainter {
         cornerPath.lineTo(
             centerX + details[currentIndex].duration * minuteWidth / 2,
             centerY - curveEdgeHeight);
-        cornerPath.lineTo(centerX + details[currentIndex].duration * minuteWidth / 2, centerY);
+        cornerPath.lineTo(
+            centerX + details[currentIndex].duration * minuteWidth / 2,
+            centerY);
         break;
       case Corner.bottomLeft:
         cornerPath.lineTo(centerX - 0.5, centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX + details[currentIndex].duration * minuteWidth / 2,
+        cornerPath.lineTo(
+            centerX + details[currentIndex].duration * minuteWidth / 2,
             centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX + details[currentIndex].duration * minuteWidth / 2, centerY);
+        cornerPath.lineTo(
+            centerX + details[currentIndex].duration * minuteWidth / 2,
+            centerY);
         break;
       case Corner.topRight:
         cornerPath.lineTo(centerX + 0.5, centerY - curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2,
+        cornerPath.lineTo(
+            centerX - details[currentIndex].duration * minuteWidth / 2,
             centerY - curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2, centerY);
+        cornerPath.lineTo(
+            centerX - details[currentIndex].duration * minuteWidth / 2,
+            centerY);
         break;
       case Corner.bottomRight:
         cornerPath.lineTo(centerX + 0.5, centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2,
+        cornerPath.lineTo(
+            centerX - details[currentIndex].duration * minuteWidth / 2,
             centerY + curveEdgeHeight);
-        cornerPath.lineTo(centerX - details[currentIndex].duration * minuteWidth / 2, centerY);
+        cornerPath.lineTo(
+            centerX - details[currentIndex].duration * minuteWidth / 2,
+            centerY);
         break;
     }
     cornerPath.close();
@@ -666,7 +821,8 @@ class SleepDurationPainter extends CustomPainter {
     final bgHeight = 45.0;
 
     // 计算标题位置，使用当前阶段的中心点
-    double bgX = stageStartX + (currentStage.duration * minuteWidth / 2) - (bgWidth / 2);
+    double bgX =
+        stageStartX + (currentStage.duration * minuteWidth / 2) - (bgWidth / 2);
 
     // 限制标题不超出边界
     if (bgX < 0) {
@@ -977,7 +1133,7 @@ class SleepDurationChartWidget extends StatefulWidget {
     this.verticalLineStyle = const LineStyle(width: 5.0, space: 3.0),
     this.horizontalLineCount = 8,
     this.dividerPaintStyle = const PaintStyle(
-      color: Color(0xFFEEEEEE),
+      color: Color(0xFF000000),
       strokeWidth: 1.0,
       style: PaintingStyle.stroke,
       strokeCap: StrokeCap.round,
@@ -1048,4 +1204,15 @@ class _SleepDurationChartWidgetState extends State<SleepDurationChartWidget> {
       },
     );
   }
+}
+
+enum _TriangleType {
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight;
+  // leftTop,
+  // rightTop,
+  // leftBottom,
+  // rightBottom;
 }
