@@ -51,7 +51,7 @@ class SleepDurationPainter extends CustomPainter {
   final PaintStyle dividerPaintStyle;
 
   /// 睡眠阶段之间的渐变连接线样式
-  final List<SleepStageStyle> sleepStageStyles;
+  // final List<SleepStageStyle> sleepStageStyles;
 
   /// 不同睡眠阶段对应的颜色映射
   final Map<SleepStage, Color> stageColors;
@@ -71,6 +71,7 @@ class SleepDurationPainter extends CustomPainter {
     SleepStage.light: Color(0xFF4870F3), // 浅睡眠 - 浅蓝色
     SleepStage.deep: Color(0xFF21B2A1), // 深睡眠 - 青色
     SleepStage.rem: Color(0xFFFCD166), // 快速眼动 - 黄色
+    SleepStage.awake: Color(0xFFCEE3FE), // 清醒 - 浅蓝色
   };
 
   /// 默认的底部信息文本样式
@@ -96,20 +97,20 @@ class SleepDurationPainter extends CustomPainter {
   double startHeight = 0;
 
   /// 默认的睡眠阶段渐变连接线样式
-  static final List<SleepStageStyle> _defaultSleepStageStyles = [
-    SleepStageStyle(
-      gradientColor: [Color(0xFF4870F3), Color(0xFF21B2A1)], // 深睡眠到浅睡眠的渐变
-      value: SleepStageStyleValue.deepAndLight,
-    ),
-    SleepStageStyle(
-      gradientColor: [Color(0xFFFCD166), Color(0xFF21B2A1)], // 深睡眠到快速眼动的渐变
-      value: SleepStageStyleValue.deepAndRem,
-    ),
-    SleepStageStyle(
-      gradientColor: [Color(0xFFFCD169), Color(0xFF4870F3)], // 浅睡眠到快速眼动的渐变
-      value: SleepStageStyleValue.lightAndRem,
-    ),
-  ];
+  // static final List<SleepStageStyle> _defaultSleepStageStyles = [
+  //   SleepStageStyle(
+  //     gradientColor: [Color(0xFF4870F3), Color(0xFF21B2A1)], // 深睡眠到浅睡眠的渐变
+  //     value: SleepStageStyleValue.deepAndLight,
+  //   ),
+  //   SleepStageStyle(
+  //     gradientColor: [Color(0xFFFCD166), Color(0xFF21B2A1)], // 深睡眠到快速眼动的渐变
+  //     value: SleepStageStyleValue.deepAndRem,
+  //   ),
+  //   SleepStageStyle(
+  //     gradientColor: [Color(0xFFFCD169), Color(0xFF4870F3)], // 浅睡眠到快速眼动的渐变
+  //     value: SleepStageStyleValue.lightAndRem,
+  //   ),
+  // ];
 
   SleepDurationPainter({
     required this.heightUnit,
@@ -131,13 +132,11 @@ class SleepDurationPainter extends CustomPainter {
       style: PaintingStyle.stroke,
       strokeCap: StrokeCap.round,
     ),
-    List<SleepStageStyle>? sleepStageStyles,
     Map<SleepStage, Color>? stageColors,
     TextStyle? bottomInfoTextStyle,
     String Function(DateTime)? dateFormatter,
     this.indicatorPosition = 0.0, // 默认位置为0
-  })  : this.sleepStageStyles = sleepStageStyles ?? _defaultSleepStageStyles,
-        this.stageColors = stageColors ?? _defaultStageColors,
+  })  : this.stageColors = stageColors ?? _defaultStageColors,
         this.bottomInfoTextStyle =
             bottomInfoTextStyle ?? _defaultBottomInfoTextStyle,
         this.dateFormatter = dateFormatter ?? _defaultDateFormatter;
@@ -281,13 +280,6 @@ class SleepDurationPainter extends CustomPainter {
         currentIndex: i,
       );
 
-      // 绘制连接处的曲线边缘
-      // _drawCurveEdge(
-      //   canvas: canvas,
-      //   currentIndex: i,
-      //   left: left,
-      // );
-
       // 绘制条形之间的连接线
       if (i > 0) {
         _drawConnectedLine(
@@ -311,54 +303,56 @@ class SleepDurationPainter extends CustomPainter {
     var bottomLeft = Radius.circular(curveRadius);
     var bottomRight = Radius.circular(curveRadius);
 
-    if (currentIndex == 0) {
-      // 绘制第一个
-      var splitDetails = details.length > 1 ? details.sublist(0, 2) : [];
-      var current = getHeightFromStage(splitDetails.first.model);
-      var last = getHeightFromStage(splitDetails.last.model);
-      if (current < last) {
-        bottomRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.bottomRight);
+    if (curveRadius > 0) {
+      if (currentIndex == 0) {
+        // 绘制第一个
+        var splitDetails = details.length > 1 ? details.sublist(0, 2) : [];
+        var current = getHeightFromStage(splitDetails.first.model);
+        var last = getHeightFromStage(splitDetails.last.model);
+        if (current < last) {
+          bottomRight = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.bottomRight);
+        } else {
+          topRight = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.topRight);
+        }
+      } else if (currentIndex == details.length - 1) {
+        // 绘制最后一个
+        var splitDetails = details.length > 1
+            ? details.sublist(details.length - 2, details.length)
+            : [];
+        var current = getHeightFromStage(splitDetails.first.model);
+        var last = getHeightFromStage(splitDetails.last.model);
+        if (current < last) {
+          topLeft = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.topLeft);
+        } else {
+          bottomLeft = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.bottomLeft);
+        }
       } else {
-        topRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.topRight);
-      }
-    } else if (currentIndex == details.length - 1) {
-      // 绘制最后一个
-      var splitDetails = details.length > 1
-          ? details.sublist(details.length - 2, details.length)
-          : [];
-      var current = getHeightFromStage(splitDetails.first.model);
-      var last = getHeightFromStage(splitDetails.last.model);
-      if (current < last) {
-        topLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.topLeft);
-      } else {
-        bottomLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.bottomLeft);
-      }
-    } else {
-      // 绘制中间
-      var start = getHeightFromStage(details[currentIndex - 1].model);
-      var current = getHeightFromStage(details[currentIndex].model);
-      var end = getHeightFromStage(details[currentIndex + 1].model);
+        // 绘制中间
+        var start = getHeightFromStage(details[currentIndex - 1].model);
+        var current = getHeightFromStage(details[currentIndex].model);
+        var end = getHeightFromStage(details[currentIndex + 1].model);
 
-      // 判断左边
-      if (start < current) {
-        topLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.topLeft);
-      } else {
-        bottomLeft = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.bottomLeft);
-      }
+        // 判断左边
+        if (start < current) {
+          topLeft = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.topLeft);
+        } else {
+          bottomLeft = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.bottomLeft);
+        }
 
-      // 判断右边
-      if (current > end) {
-        topRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.topRight);
-      } else {
-        bottomRight = Radius.zero;
-        _drawTriangle(canvas, rect, paint, Corner.bottomRight);
+        // 判断右边
+        if (current > end) {
+          topRight = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.topRight);
+        } else {
+          bottomRight = Radius.zero;
+          _drawTriangle(canvas, rect, paint, Corner.bottomRight);
+        }
       }
     }
 
@@ -374,8 +368,7 @@ class SleepDurationPainter extends CustomPainter {
   }
 
   /// 绘制连接处三角形
-  void _drawTriangle(
-      Canvas canvas, Rect rect, Paint paint, Corner type) {
+  void _drawTriangle(Canvas canvas, Rect rect, Paint paint, Corner type) {
     Path path = Path();
     double radius = min(rect.width / 2, curveRadius); // 内凹弧线的半径
 
@@ -445,19 +438,16 @@ class SleepDurationPainter extends CustomPainter {
     required int currentIndex,
     required double left,
   }) {
-    // var connectX = left;
+    var preModelHeight = getHeightFromStage(details[currentIndex - 1].model);
+    var currentModelHeight = getHeightFromStage(details[currentIndex].model);
+
     // 计算连接线的起始和结束位置
-    final startY = titleHeight +
-        titleGap +
-        (getHeightFromStage(details[currentIndex - 1].model) *
-            heightUnit *
-            chartHeight);
+    final startY =
+        titleHeight + titleGap + (preModelHeight * heightUnit * chartHeight);
 
     final endY = titleHeight +
         titleGap +
-        (getHeightFromStage(details[currentIndex].model) *
-            heightUnit *
-            chartHeight);
+        (currentModelHeight * heightUnit * chartHeight);
 
     // 调整连接线的位置，确保正确的连接效果
     final actualStartY = startY > endY ? endY + barHeight : startY + barHeight;
@@ -466,28 +456,33 @@ class SleepDurationPainter extends CustomPainter {
     // 根据睡眠阶段选择对应的渐变样式
     final prevModel = details[currentIndex - 1].model;
     final currentModel = details[currentIndex].model;
-    SleepStageStyle? style;
+    SleepStageStyle style = SleepStageStyle(
+      gradientColor: preModelHeight < currentModelHeight
+          ? [stageColors[prevModel]!, stageColors[currentModel]!]
+          : [stageColors[currentModel]!, stageColors[prevModel]!],
+      // 浅睡眠到快速眼动的渐变
+    );
 
     // 根据不同的睡眠阶段组合选择对应的渐变样式
-    if (prevModel == SleepStage.deep && currentModel == SleepStage.light) {
-      style = sleepStageStyles[0]; // 深睡眠到浅睡眠
-    } else if (prevModel == SleepStage.deep && currentModel == SleepStage.rem) {
-      style = sleepStageStyles[1]; // 深睡眠到快速眼动
-    } else if (prevModel == SleepStage.light &&
-        currentModel == SleepStage.rem) {
-      style = sleepStageStyles[2]; // 浅睡眠到快速眼动
-    } else if (prevModel == SleepStage.light &&
-        currentModel == SleepStage.deep) {
-      style = sleepStageStyles[0]; // 浅睡眠到深睡眠
-    } else if (prevModel == SleepStage.rem && currentModel == SleepStage.deep) {
-      style = sleepStageStyles[1]; // 快速眼动到深睡眠
-    } else if (prevModel == SleepStage.rem &&
-        currentModel == SleepStage.light) {
-      style = sleepStageStyles[2]; // 快速眼动到浅睡眠
-    }
+    // if (prevModel == SleepStage.deep && currentModel == SleepStage.light) {
+    //   style = sleepStageStyles[0]; // 深睡眠到浅睡眠
+    // } else if (prevModel == SleepStage.deep && currentModel == SleepStage.rem) {
+    //   style = sleepStageStyles[1]; // 深睡眠到快速眼动
+    // } else if (prevModel == SleepStage.light &&
+    //     currentModel == SleepStage.rem) {
+    //   style = sleepStageStyles[2]; // 浅睡眠到快速眼动
+    // } else if (prevModel == SleepStage.light &&
+    //     currentModel == SleepStage.deep) {
+    //   style = sleepStageStyles[0]; // 浅睡眠到深睡眠
+    // } else if (prevModel == SleepStage.rem && currentModel == SleepStage.deep) {
+    //   style = sleepStageStyles[1]; // 快速眼动到深睡眠
+    // } else if (prevModel == SleepStage.rem &&
+    //     currentModel == SleepStage.light) {
+    //   style = sleepStageStyles[2]; // 快速眼动到浅睡眠
+    // }
 
     // 使用渐变色绘制连接线
-    final gradientColors = style?.gradientColor;
+    final gradientColors = style.gradientColor;
     if (gradientColors != null && gradientColors.isNotEmpty) {
       final connectPaint = Paint()
         ..shader = LinearGradient(
@@ -759,18 +754,25 @@ class SleepDurationPainter extends CustomPainter {
 
     // 根据睡眠阶段设置标题文本
     String stageName;
-    switch (currentStage.model) {
-      case SleepStage.light:
-        stageName = 'Light';
-        break;
-      case SleepStage.deep:
-        stageName = 'Deep';
-        break;
-      case SleepStage.rem:
-        stageName = 'REM';
-        break;
-      default:
-        stageName = 'Unknown';
+    if (currentStage.stageName != null) {
+      stageName = currentStage.stageName!;
+    } else {
+      switch (currentStage.model) {
+        case SleepStage.light:
+          stageName = 'Light';
+          break;
+        case SleepStage.deep:
+          stageName = 'Deep';
+          break;
+        case SleepStage.rem:
+          stageName = 'REM';
+          break;
+        case SleepStage.awake:
+          stageName = 'Awake';
+          break;
+        default:
+          stageName = 'Unknown';
+      }
     }
 
     // 格式化时间
@@ -1005,12 +1007,14 @@ class SleepDetailChart {
   final DateTime startTime; // 阶段开始时间
   final DateTime endTime; // 阶段结束时间
   final int duration; // 持续时间（分钟）
+  final String? stageName; // 阶段显示文本
 
   SleepDetailChart({
     required this.model,
     required this.startTime,
     required this.endTime,
     required this.duration,
+    this.stageName,
   });
 
   /// 创建测试用的睡眠详情图表数据
@@ -1064,6 +1068,8 @@ int getHeightFromStage(SleepStage stage) {
       return 6;
     case SleepStage.rem:
       return 2;
+    case SleepStage.awake:
+      return 0;
     default:
       return 7;
   }
@@ -1082,12 +1088,10 @@ enum SleepStageStyleValue {
 class SleepStageStyle {
   final List<Color>? gradientColor; // 渐变色列表
   final Color? color; // 纯色
-  final SleepStageStyleValue value; // 样式值
 
   SleepStageStyle({
     this.gradientColor,
     this.color,
-    required this.value,
   }) : assert(
             (gradientColor != null && color == null) ||
                 (gradientColor == null && color != null),
@@ -1110,7 +1114,6 @@ class SleepDurationChartWidget extends StatefulWidget {
   final LineStyle verticalLineStyle; // 垂直线样式
   final int horizontalLineCount; // 水平线数量
   final PaintStyle dividerPaintStyle; // 分隔线样式
-  final List<SleepStageStyle>? sleepStageStyles; // 睡眠阶段样式
   final Map<SleepStage, Color>? stageColors; // 阶段颜色映射
   final TextStyle? bottomInfoTextStyle; // 底部信息文本样式
   final String Function(DateTime)? dateFormatter; // 日期格式化函数
@@ -1136,7 +1139,6 @@ class SleepDurationChartWidget extends StatefulWidget {
       style: PaintingStyle.stroke,
       strokeCap: StrokeCap.round,
     ),
-    this.sleepStageStyles,
     this.stageColors,
     this.bottomInfoTextStyle,
     this.dateFormatter,
@@ -1178,26 +1180,24 @@ class _SleepDurationChartWidgetState extends State<SleepDurationChartWidget> {
           onHorizontalDragEnd: (details) {},
           child: CustomPaint(
             painter: SleepDurationPainter(
-              heightUnit: widget.heightUnit,
-              titleHeight: widget.titleHeight,
-              titleGap: widget.titleGap,
-              xAxisTitleOffset: widget.xAxisTitleOffset,
-              xAxisTitleHeight: widget.xAxisTitleHeight,
-              bgColor: widget.bgColor,
-              details: widget.details,
-              startTime: widget.startTime,
-              endTime: widget.endTime,
-              horizontalLineStyle: widget.horizontalLineStyle,
-              verticalLineStyle: widget.verticalLineStyle,
-              horizontalLineCount: widget.horizontalLineCount,
-              dividerPaintStyle: widget.dividerPaintStyle,
-              sleepStageStyles: widget.sleepStageStyles,
-              stageColors: widget.stageColors,
-              bottomInfoTextStyle: widget.bottomInfoTextStyle,
-              dateFormatter: widget.dateFormatter,
-              indicatorPosition: _indicatorPosition,
-              curveRadius: widget.curveRadius
-            ),
+                heightUnit: widget.heightUnit,
+                titleHeight: widget.titleHeight,
+                titleGap: widget.titleGap,
+                xAxisTitleOffset: widget.xAxisTitleOffset,
+                xAxisTitleHeight: widget.xAxisTitleHeight,
+                bgColor: widget.bgColor,
+                details: widget.details,
+                startTime: widget.startTime,
+                endTime: widget.endTime,
+                horizontalLineStyle: widget.horizontalLineStyle,
+                verticalLineStyle: widget.verticalLineStyle,
+                horizontalLineCount: widget.horizontalLineCount,
+                dividerPaintStyle: widget.dividerPaintStyle,
+                stageColors: widget.stageColors,
+                bottomInfoTextStyle: widget.bottomInfoTextStyle,
+                dateFormatter: widget.dateFormatter,
+                indicatorPosition: _indicatorPosition,
+                curveRadius: widget.curveRadius),
             size: Size(constraints.maxWidth, constraints.maxHeight),
           ),
         );

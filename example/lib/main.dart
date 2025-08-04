@@ -60,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
             xAxisTitleOffset: 8.0,
             xAxisTitleHeight: 15.0,
             bgColor: Color.fromRGBO(72, 112, 243, 0.04),
-            curveRadius: 8,
+            curveRadius: 0,
             details: [
               SleepDetailChart(
                 model: SleepStage.light,
@@ -93,6 +93,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 duration: 68,
               ),
               SleepDetailChart(
+                model: SleepStage.awake,
+                startTime: DateTime.now().add(Duration(minutes: 118)),
+                endTime: DateTime.now().add(Duration(minutes: 160)),
+                duration: 20,
+              ),
+              SleepDetailChart(
                 model: SleepStage.deep,
                 startTime: DateTime.now().add(Duration(minutes: 118)),
                 endTime: DateTime.now().add(Duration(minutes: 160)),
@@ -119,21 +125,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
             startTime: DateTime.now(),
             endTime: DateTime.now().add(Duration(minutes: 260)),
-            stageColors: stageColors,
-            sleepStageStyles: [
-              SleepStageStyle(
-                gradientColor: [Color(0xFF4870F3), Color(0xFF21B2A1)],
-                value: SleepStageStyleValue.deepAndLight,
-              ),
-              SleepStageStyle(
-                gradientColor: [Color(0xFFFCD166), Color(0xFF21B2A1)],
-                value: SleepStageStyleValue.deepAndRem,
-              ),
-              SleepStageStyle(
-                gradientColor: [Color(0xFFFCD169), Color(0xFF4870F3)],
-                value: SleepStageStyleValue.lightAndRem,
-              ),
-            ],
           ),
         ),
       ),
