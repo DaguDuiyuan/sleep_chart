@@ -199,7 +199,7 @@ class SleepDurationPainter extends CustomPainter {
       ..strokeCap = dividerPaintStyle.strokeCap;
 
     _drawHorizontalLines(canvas, size, dividerPaint);
-    _drawVerticalLines(canvas, size, dividerPaint);
+    // _drawVerticalLines(canvas, size, dividerPaint);
   }
 
   /// 绘制水平网格线
@@ -738,17 +738,17 @@ class SleepDurationPainter extends CustomPainter {
 
     // 创建文本样式
     final textTitleStyle = TextStyle(
-      color: Color(0xFF1B6BFF),
+      color: Color(0xFFFFFFFF),
       fontSize: 16,
     );
     final textTitleMinuteStyle = TextStyle(
-      color: Color(0xFF1B6BFF),
-      fontSize: 20,
+      color: Color(0xFFFFFFFF),
+      fontSize: 16,
       fontWeight: FontWeight.w600,
     );
     final textSubTitleStyle = TextStyle(
-      color: Color(0xFF999999),
-      fontSize: 10,
+      color: Color(0xFF4D6A7C),
+      fontSize: 13,
       fontWeight: FontWeight.bold,
     );
 
@@ -793,7 +793,7 @@ class SleepDurationPainter extends CustomPainter {
             style: textTitleMinuteStyle,
           ),
           TextSpan(
-            text: 'min',
+            text: '分',
             style: textTitleStyle,
           ),
         ],
@@ -857,6 +857,11 @@ class SleepDurationPainter extends CustomPainter {
   /// 绘制指示器
   /// 在图表中央绘制垂直指示线和底部指示器
   void _drawIndicator(Canvas canvas, Size size) {
+    // 如果没有睡眠数据，则不显示指示器
+    if (details.isEmpty) {
+      return;
+    }
+
     final chartHeight = size.height -
         titleHeight -
         titleGap -
